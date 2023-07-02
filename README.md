@@ -61,6 +61,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 pip3 install -r test-requirements.txt
+ansible-galaxy collection install --force -r test-requirements.yml
 
 
 molecule -v test default  # test default scenario with systemd service manager
