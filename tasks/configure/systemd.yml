@@ -1,0 +1,77 @@
+---
+- name: clickhouse - remove default systemd service
+  file:
+    dest: "{{ clickhouse_systemd_default_service_dir }}/{{ clickhouse_systemd_service_name }}"
+    state: absent
+  register: default_systemd_file
+
+- name: clickhouse - stop and disable default systemd service
+  when: default_systemd_file.changed  # noqa: no-handler
+  systemd:
+    name: "{{ clickhouse_systemd_service_name }}"
+    daemon-reload: true
+    enabled: false
+    state: stopped
+
+- name: clickhouse - copy systemd service config
+  template:
+    src: templates/service/systemd.conf.j2
+    dest: "{{ clickhouse_systemd_service_dir }}/{{ clickhouse_systemd_service_name }}"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+    mode: "0640"
+  notify:
+    - clickhouse - restart {{ clickhouse_service_manager }} service
+
+- name: clickhouse - ensure systemd service is enabled
+  when: not ansible_check_mode and default_systemd_file.changed  # noqa: no-handler
+  systemd:
+    name: "{{ clickhouse_systemd_service_name }}"
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: clickhouse - just wait while clickhouse systemd service become ready
+  when: not ansible_check_mode
+  wait_for:
+    timeout: 1
+
+- name: clickhouse - check systemd service is really running
+  block:
+    - name: clickhouse - gather systemd service facts
+      service_facts:
+
+    - name: clickhouse - validate clickhouse-server service is running
+      assert:
+        that: |
+          clickhouse_systemd_service_name in ansible_facts.services.keys() and
+          ansible_facts.services[clickhouse_systemd_service_name].state == 'running'
+        success_msg: clickhouse-server is running - OK
+        fail_msg: |
+          The {{ clickhouse_systemd_service_name }} is not running!
+
+- name: clickhouse - just wait while clickhouse ports become ready
+  when: not ansible_check_mode
+  wait_for:
+    timeout: 10
+
+- name: clickhouse - check listen ports
+  when: not ansible_check_mode
+  block:
+    - name: clickhouse - gather facts about ports
+      listen_ports_facts:
+
+    - name: clickhouse - check service listen ports
+      assert:
+        that: item | int in (ansible_facts.tcp_listen | map(attribute='port') | sort | list)
+      with_items:
+        - "{{ clickhouse_listen_port_tcp }}"
+        - "{{ clickhouse_listen_port_http }}"
+
+    - name: clickhouse - check service listen secure ports
+      when: clickhouse_enable_secure_protocols
+      assert:
+        that: item | int in (ansible_facts.tcp_listen | map(attribute='port') | sort | list)
+      with_items:
+        - "{{ clickhouse_listen_port_tcp_secure }}"
+        - "{{ clickhouse_listen_port_https }}"

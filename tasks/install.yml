@@ -1,0 +1,52 @@
+---
+- name: clickhouse - install apt requirements
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - dirmngr
+    state: present
+    update_cache: true
+
+- name: clickhouse - add repository key
+  apt_key:
+    id: "{{ clickhouse_apt_repository_key_id }}"
+    keyserver: "{{ clickhouse_apt_repository_key_server }}"
+    state: present
+
+- name: clickhouse - add repository
+  apt_repository:
+    repo: "{{ clickhouse_apt_repository_repo }}"
+
+- name: clickhouse - install client apt packages
+  apt:
+    name:
+      - clickhouse-common-static={{ clickhouse_version }}
+      - clickhouse-client={{ clickhouse_version }}
+    state: present
+    update_cache: true
+
+- name: clickhouse - install server apt packages
+  when: clickhouse_service_manager == "systemd"
+  apt:
+    name:
+      - clickhouse-server={{ clickhouse_version }}
+    state: present
+    update_cache: true
+
+- name: clickhouse - install watch tool for clickhouse-top
+  apt:
+    name:
+      - watch
+    state: present
+    update_cache: true
+  tags:
+    - molecule-idempotence-notest  # bug on ubuntu-18, always changed
+
+- name: clickhouse - install clickhouse-top script
+  copy:
+    src: files/clickhouse-top.sh
+    dest: /usr/bin/clickhouse-top
+    mode: "0755"
+    owner: "{{ clickhouse_general_owner }}"
+    group: "{{ clickhouse_general_owner }}"

@@ -1,0 +1,44 @@
+---
+- import_tasks: preflight.yml
+  tags:
+    - clickhouse
+    - clickhouse-base
+
+- import_tasks: configure/common.yml
+  tags:
+    - clickhouse
+    - clickhouse-config
+
+- import_tasks: configure/ssl.yml
+  when: clickhouse_enable_secure_protocols
+  notify:
+    - clickhouse - restart {{ clickhouse_service_manager }} service
+  tags:
+    - clickhouse
+    - clickhouse-ssl
+    - clickhouse-pki
+
+- import_tasks: configure/client.yml
+  tags:
+    - clickhouse
+    - clickhouse-config
+    - clickhouse-client
+
+- import_tasks: install.yml
+  tags:
+    - clickhouse
+    - clickhouse-install
+
+- import_tasks: configure/systemd.yml
+  when: clickhouse_service_manager == "systemd"
+  tags:
+    - clickhouse
+    - clickhouse-install
+    - clickhouse-config
+
+- import_tasks: configure/docker.yml
+  when: clickhouse_service_manager == "docker"
+  tags:
+    - clickhouse
+    - clickhouse-install
+    - clickhouse-config

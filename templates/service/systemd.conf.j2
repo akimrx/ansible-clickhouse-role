@@ -1,0 +1,32 @@
+#jinja2: trim_blocks:True, lstrip_blocks:True
+# {{ ansible_managed }}
+
+[Unit]
+Description=ClickHouse Server (analytic DBMS for big data)
+Requires=network-online.target systemd-resolved.service
+After=network-online.target systemd-resolved.service
+
+[Service]
+Type={{ clickhouse_systemd_service_type }}
+User={{ clickhouse_system_user }}
+Group={{ clickhouse_system_group }}
+
+Restart={{ clickhouse_systemd_restart }}
+RestartSec={{ clickhouse_systemd_restart_sec }}
+
+ExecStart=/usr/bin/clickhouse-server --config={{ clickhouse_dir_config }}/config.xml
+
+LimitCORE={{ clickhouse_systemd_limit_core }}
+LimitNOFILE={{ clickhouse_systemd_limit_nofile }}
+
+{% if clickhouse_systemd_custom_settings %}
+{% for key, value in clickhouse_systemd_custom_settings.items() %}
+{{ key }}={{ value }}
+{% endfor %}
+{% endif %}
+
+CapabilityBoundingSet={{ clickhouse_systemd_capability_bounding_set | join(" ") }}
+
+[Install]
+# ClickHouse should not start from the rescue shell (rescue.target).
+WantedBy=multi-user.target

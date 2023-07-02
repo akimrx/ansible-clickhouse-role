@@ -1,0 +1,132 @@
+---
+- name: clickhouse - check that the service manager is specified correctly
+  assert:
+    that: clickhouse_service_manager in ['docker', 'systemd']
+    success_msg: "clickhouse_service_manager: {{ clickhouse_service_manager }} - OK"
+    fail_msg: |
+      For the role variable 'clickhouse_service_manager' one of the following values
+      is expected: 'docker', 'systemd'. Received: {{ clickhouse_service_manager }}.
+
+- name: clickhouse - check systemd support
+  when: clickhouse_service_manager == "systemd"
+  assert:
+    that: ansible_service_mgr == "systemd"
+    success_msg: "systemd support - OK"
+    fail_msg: |
+      The 'clickhouse_service_manager' variable specifies 'systemd', but the OS does not support systemd.
+      The service manager for this host is '{{ ansible_service_mgr }}'.
+
+- name: clickhouse - check docker support
+  when: clickhouse_service_manager == "docker"
+  block:
+    - name: clickhouse - gather docker binary facts
+      command: docker --version
+      register: docker_installed
+      changed_when: false
+      ignore_errors: true
+
+    - name: clickhouse - gather docker-compose binary facts
+      command: docker-compose --version
+      register: docker_compose_installed
+      changed_when: false
+      ignore_errors: true
+
+    - name: clickhouse - gather docker service facts
+      service_facts:
+
+    - name: clickhouse - validate docker binary is exists
+      assert:
+        that: not docker_installed.failed
+        success_msg: docker is installed - OK
+        fail_msg: |
+          The 'clickhouse_service_manager' variable specifies 'docker', however,
+          Docker is not installed on the target host.
+
+    - name: clickhouse - validate docker-compose binary is exists
+      assert:
+        that: not docker_compose_installed.failed
+        success_msg: docker-compose is installed - OK
+        fail_msg: |
+          The 'clickhouse_service_manager' variable specifies 'docker', however,
+          'docker-compose' is not installed on the target host.
+
+    - name: clickhouse - validate docker service is running
+      assert:
+        that: |
+          ('docker' in ansible_facts.services.keys() and ansible_facts.services['docker'].state == 'running') or
+          ('docker.service' in ansible_facts.services.keys() and ansible_facts.services['docker.service'].state == 'running')
+        success_msg: docker is running - OK
+        fail_msg: |
+          The 'clickhouse_service_manager' variable specifies 'docker', however,
+          Docker is not running on the target host.
+
+- name: clickhouse - validate docker cpus limit is valid
+  when: clickhouse_service_manager == "docker" and clickhouse_docker_cpus is defined
+  assert:
+    that: clickhouse_docker_cpus <= ansible_processor_vcpus
+    success_msg: clickhouse_docker_cpus is valid
+    fail_msg: |
+      The value of the variable 'clickhouse_docker_cpus' ({{ clickhouse_docker_cpus }}) is greater
+      than is available cores in the system ({{ ansible_processor_vcpus }}).
+
+- name: clickhouse - validate SSL certificates content
+  when: clickhouse_enable_secure_protocols
+  assert:
+    that:
+      - clickhouse_ssl_certificate != ""
+      - clickhouse_ssl_private_key != ""
+    success_msg: SSL certificates looks good
+    fail_msg: |
+      Secure protocols is enabled, but 'clickhouse_ssl_certificate' or 'clickhouse_ssl_private_key' is empty.
+
+- name: clickhouse - create system group
+  when: clickhouse_system_group != "root"
+  group:
+    name: "{{ clickhouse_system_group }}"
+    state: present
+    system: true
+  register: _clickhouse_system_group_output
+
+- name: clickhouse - create system user
+  when: clickhouse_system_user != "root"
+  user:
+    name: "{{ clickhouse_system_user }}"
+    state: present
+    groups: "{{ clickhouse_system_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+  register: _clickhouse_system_user_output
+
+- name: clickhouse - create base general directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ clickhouse_general_owner }}"
+    group: "{{ clickhouse_general_owner }}"
+  with_items:
+    - "{{ clickhouse_base_dir_root }}"
+    - "{{ clickhouse_base_dir_config }}"
+    - "{{ clickhouse_base_dir_data }}"
+    - "{{ clickhouse_base_dir_log }}"
+    - "{{ clickhouse_base_dir_library }}"
+    - "{{ clickhouse_base_dir_temp }}"
+
+- name: clickhouse - create specific service dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "{{ clickhouse_specific_dirs_mode }}"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+  with_items:
+    - "{{ clickhouse_dir_config }}"
+    - "{{ clickhouse_dir_ssl }}"
+    - "{{ clickhouse_dir_data }}"
+    - "{{ clickhouse_dir_log }}"
+    - "{{ clickhouse_dir_library }}"
+    - "{{ clickhouse_dir_temp }}"
+    - "{{ clickhouse_dir_user_files }}"
+    - "{{ clickhouse_dir_format_schemas }}"

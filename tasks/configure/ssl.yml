@@ -1,0 +1,17 @@
+---
+- name: clickhouse - copy openssl certificate
+  template:
+    src: templates/ssl/server.crt.j2
+    dest: "{{ clickhouse_dir_ssl }}/server.crt"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+    mode: "0644"
+
+- name: clickhouse - copy openssl private key
+  template:
+    src: templates/ssl/server.key.j2
+    dest: "{{ clickhouse_dir_ssl }}/server.key"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+    mode: "0600"
+  no_log: true

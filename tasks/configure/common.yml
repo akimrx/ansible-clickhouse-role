@@ -1,0 +1,18 @@
+---
+- name: clickhouse - server configuration
+  template:
+    src: templates/config/server.xml.j2
+    dest: "{{ clickhouse_dir_config }}/config.xml"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+    mode: "{{ clickhouse_config_files_mode }}"
+  notify:
+    - clickhouse - restart {{ clickhouse_service_manager }} service
+
+- name: clickhouse - users configuration
+  template:
+    src: templates/config/users.xml.j2
+    dest: "{{ clickhouse_dir_config }}/users.xml"
+    owner: "{{ clickhouse_system_user }}"
+    group: "{{ clickhouse_system_group }}"
+    mode: "{{ clickhouse_config_files_mode }}"

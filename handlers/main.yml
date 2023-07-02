@@ -1,0 +1,16 @@
+---
+- name: clickhouse - restart systemd service
+  when: not ansible_check_mode
+  systemd:
+    name: "{{ clickhouse_systemd_service_name }}"
+    state: restarted
+    daemon_reload: true
+    enabled: true
+
+- name: clickhouse - restart docker service
+  when: not ansible_check_mode
+  docker_compose:
+    project_name: "{{ clickhouse_docker_service_name }}"
+    project_src: "{{ clickhouse_dir_config }}"
+    state: present
+    restarted: true

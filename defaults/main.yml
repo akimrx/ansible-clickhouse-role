@@ -1,0 +1,235 @@
+---
+clickhouse_base_dir_root: /opt
+clickhouse_base_dir_config: "{{ clickhouse_base_dir_root }}/conf"
+clickhouse_base_dir_data: "{{ clickhouse_base_dir_root }}/data"
+clickhouse_base_dir_log: "{{ clickhouse_base_dir_root }}/log"
+clickhouse_base_dir_library: "{{ clickhouse_base_dir_root }}/lib"
+clickhouse_base_dir_temp: "{{ clickhouse_base_dir_root }}/tmp"
+
+clickhouse_dir_data: "{{ clickhouse_base_dir_data }}/clickhouse"
+clickhouse_dir_config: "{{ clickhouse_base_dir_config }}/clickhouse"
+clickhouse_dir_ssl: "{{ clickhouse_base_dir_config }}/clickhouse/ssl"
+clickhouse_dir_log: "{{ clickhouse_base_dir_log }}/clickhouse"
+clickhouse_dir_library: "{{ clickhouse_base_dir_library }}/clickhouse"
+clickhouse_dir_user_files: "{{ clickhouse_dir_library }}/user_files"
+clickhouse_dir_format_schemas: "{{ clickhouse_dir_library }}/format_schemas"
+clickhouse_dir_temp: "{{ clickhouse_base_dir_temp }}/clickhouse"
+
+clickhouse_general_owner: root
+clickhouse_system_user: clickhouse
+clickhouse_system_group: clickhouse
+
+clickhouse_service_manager: systemd  # systemd | docker
+clickhouse_apt_repository_repo: deb https://packages.clickhouse.com/deb stable main
+clickhouse_apt_repository_key_id: 8919F6BD2B48D754
+clickhouse_apt_repository_key_server: hkp://keyserver.ubuntu.com:80
+
+# Clickhouse specific variables
+clickhouse_version: 22.1.3.7
+clickhouse_prompt: "{{ inventory_hostname }} - clickhouse"
+clickhouse_default_database_name: default
+clickhouse_default_profile: default
+clickhouse_macros_shard_name: "01"
+clickhouse_macros_replica_name: "{{ inventory_hostname }}"
+
+clickhouse_listen_reuse_port: true
+clickhouse_listen_try: 1
+clickhouse_listen_backlog: 4096
+clickhouse_listen_port_tcp: 9000
+clickhouse_listen_port_http: 8123
+# $clickhouse_listen_port_mysql: (int)
+clickhouse_listen_port_interserver: 9009
+clickhouse_interserver_http_hostname: "{{ inventory_hostname }}"
+clickhouse_listen_hosts:
+  - "::"
+
+clickhouse_enable_secure_protocols: false
+clickhouse_listen_port_https: 8443
+clickhouse_listen_port_tcp_secure: 9440
+clickhouse_ssl_certificate: ""
+clickhouse_ssl_private_key: ""
+
+clickhouse_zookeeper_enabled: false  # no test coverage right now
+clickhouse_zookeeper_session_timeout_ms: 30000
+clickhouse_zookeeper_operation_timeout_ms: 10000
+
+# $clickhouse_zookeeper_identity: (str)
+
+# $clickhouse_zookeeper_hosts: list(dict)
+#   - fqdn: zoo1.example.com
+#     port: 2181
+#   - fqdn: ...
+
+clickhouse_distributed_ddl_zookeeper_path: /clickhouse/task_queue/ddl
+clickhouse_resharding_task_queue_path: /clickhouse/task_queue
+# $clickhouse_distributed_ddl_profile: (str)
+
+clickhouse_config_log_level: warning
+clickhouse_config_log_size: 1000M
+clickhouse_config_log_count: 5
+clickhouse_config_max_open_files: maximum
+clickhouse_config_max_concurrent_queries: 300
+clickhouse_config_max_connections: 4096
+clickhouse_config_keep_alive_timeout: 3
+clickhouse_config_max_session_timeout: 3600
+clickhouse_config_default_session_timeout: 60
+clickhouse_config_uncompressed_cache_size: 8589934592
+clickhouse_config_mark_cache_size: 5368709120
+clickhouse_config_timezone: Europe/Moscow
+clickhouse_config_mlock_executable: false
+clickhouse_config_umask: "027"
+clickhouse_config_builtin_dictionaries_reload_interval: 3600
+clickhouse_config_max_table_size_to_drop: "{{ '50 GB' | human_to_bytes | int }}"
+clickhouse_config_max_partition_size_to_drop: "{{ '5 GB' | human_to_bytes | int }}"
+clickhouse_config_max_server_memory_usage_to_ram_ratio: 0.8
+clickhouse_config_max_thread_pool_size: 15000
+# $clickhouse_config_custom_settings: (dict) - other uncovered simple key:value settings
+#   foo: bar
+#   a: b
+
+# $clickhouse_merge_tree_settings: (dict)
+#   foo: bar
+#   a: b
+
+# $clickhouse_sharding_clusters: list(dict)
+#   - name: mycluster
+#     shards:
+#       - weight: 1
+#         internal_replication: false
+#         replicas:
+#         - priority: 1
+#           secure: 0
+#           host: foo.example.com
+#           port: 9000
+#           user: sharder
+#           password: secret
+
+clickhouse_query_log_database: system
+clickhouse_query_log_table: query_log
+clickhouse_query_log_engine: Engine = MergeTree() PARTITION BY toYYYYMM(event_date) ORDER BY event_time TTL event_date + INTERVAL 30 DAY
+clickhouse_query_log_flush_interval_milliseconds: 7500
+
+clickhouse_part_log_enabled: true
+clickhouse_part_log_database: system
+clickhouse_part_log_table: part_log
+clickhouse_part_log_partition_by: toMonday(event_date)
+clickhouse_part_log_flush_interval_milliseconds: 7500
+
+clickhouse_user_profiles_default:
+  default:
+    max_memory_usage: 10000000000
+    use_uncompressed_cache: 0
+    load_balancing: random
+  readonly:
+    readonly: 2
+
+# $clickhouse_user_profiles_custom: (dict) - like a clickhouse_user_profiles_default
+#    profilename:
+#      foo: bar
+#      a: b
+
+clickhouse_user_quotas_default:
+  default:
+    intervals:
+      - duration: 3600
+        queries: 0
+        errors: 0
+        result_rows: 0
+        read_rows: 0
+        execution_time: 0
+
+# $clickhouse_user_quotas_custom: (dict) - like a clickhouse_user_quotas_default
+#    quotaname:
+#      intervals:
+#        - foo: bar
+#          a: b
+#        - baz: boo
+#          c: d
+
+clickhouse_users_default:
+  - username: default
+    password: default
+    profile: default
+    quota: default
+    access_management: true
+    networks:
+      ip:
+        - ::/0
+  - username: readonly
+    password: readonly
+    profile: readonly
+    quota: default
+    networks:
+      ip:
+        - ::/0
+
+# $clickhouse_users_custom: list(dict) - like a clickhouse_users_default
+#   - username: foo
+#     password: bar
+#     ...
+
+clickhouse_client_os_user: "{{ ansible_user | default('root') }}"
+clickhouse_client_os_group: "{{ ansible_user | default('root') }}"
+clickhouse_client_config_user_name: "default"
+clickhouse_client_config_user_password: "{{ clickhouse_users_default | selectattr('username', 'equalto', clickhouse_client_config_user_name) | map(attribute='password') | list | first }}"
+clickhouse_client_config_send_timeout: 1800
+clickhouse_client_config_receive_timeout: 6000
+clickhouse_client_config_secure: false
+
+# $clickhouse_graphite_rollup: (dict)
+#   path_column_name: Path
+#   time_column_name: Time
+#   value_column_name: Value
+#   version_column_name: Timestamp
+#   patterns:
+#     - function: avg
+#       regexp: ""  # optional
+#       retentions:
+#         - age: 5
+#           precision: 30
+#         - age: 10
+#           precision: 60
+#         ...
+#     - ...
+
+# $clickhouse_compression: list(dict)
+#   - min_part_size: 10000000000
+#     min_part_size_ratio: 0.01
+#     method: lz4
+#   - ...
+
+
+# SystemD specific variables
+clickhouse_systemd_service_dir: /lib/systemd/system
+clickhouse_systemd_default_service_dir: /etc/systemd/system/
+clickhouse_systemd_service_name: clickhouse-server.service
+clickhouse_systemd_service_type: simple
+clickhouse_systemd_capability_bounding_set:
+  - CAP_NET_ADMIN
+  - CAP_IPC_LOCK
+  - CAP_SYS_NICE
+clickhouse_systemd_limit_nofile: 500000
+clickhouse_systemd_limit_core: infinity
+clickhouse_systemd_restart: always
+clickhouse_systemd_restart_sec: 30
+# $clickhouse_systemd_custom_settings: (dict)
+#    CPUQuota: 80%
+#    MemoryHigh: 90%
+
+# Docker specific variables
+clickhouse_docker_prune_after_up: true
+clickhouse_docker_service_name: clickhouse
+clickhouse_docker_restart_policy: unless-stopped
+clickhouse_docker_container_name: clickhouse
+clickhouse_docker_hostname: clickhouse
+# $clickhouse_docker_cpus: (int)
+# $clickhouse_docker_mem_limit: (str) - like 10g
+clickhouse_docker_cap_add:
+  - SYS_ADMIN
+  - SYS_NICE
+  - NET_ADMIN
+clickhouse_docker_published_ports:
+  - host: "{{ clickhouse_listen_port_tcp }}"
+    container: "{{ clickhouse_listen_port_tcp }}"
+  - host: "{{ clickhouse_listen_port_http }}"
+    container: "{{ clickhouse_listen_port_http }}"

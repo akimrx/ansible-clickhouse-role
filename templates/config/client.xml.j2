@@ -1,0 +1,28 @@
+#jinja2:lstrip_blocks: True
+<?xml version="1.0"?>
+<!-- {{ ansible_managed }} -->
+
+<config>
+    <user>{{ clickhouse_client_config_user_name }}</user>
+    <password>{{ clickhouse_client_config_user_password }}</password>
+    <secure>{{ clickhouse_client_config_secure | lower }}</secure>
+    <send_timeout>{{ clickhouse_client_config_send_timeout }}</send_timeout>
+    <receive_timeout>{{ clickhouse_client_config_receive_timeout }}</receive_timeout>
+    {% if clickhouse_client_config_secure %}
+    <port>{{ clickhouse_listen_port_tcp_secure }}</port>
+    {% else %}
+    <port>{{ clickhouse_listen_port_tcp }}</port>
+    {% endif %}
+    <openSSL>
+        <client>
+            <loadDefaultCAFile>true</loadDefaultCAFile>
+            <caConfig>{{ clickhouse_dir_ssl }}/server.crt</caConfig>
+            <cacheSessions>true</cacheSessions>
+            <disableProtocols>sslv2,sslv3</disableProtocols>
+            <preferServerCiphers>true</preferServerCiphers>
+            <invalidCertificateHandler>
+                <name>RejectCertificateHandler</name>
+            </invalidCertificateHandler>
+        </client>
+    </openSSL>
+</config>

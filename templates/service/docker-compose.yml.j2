@@ -1,0 +1,39 @@
+#jinja2: trim_blocks:True, lstrip_blocks:True
+# {{ ansible_managed }}
+version: '3'
+
+services:
+  {{ clickhouse_docker_service_name }}:
+    image: "yandex/clickhouse-server:{{ clickhouse_version }}"
+    restart: {{ clickhouse_docker_restart_policy }}
+    container_name: {{ clickhouse_docker_container_name }}
+    hostname: {{ clickhouse_docker_hostname }}
+    environment:
+      CLICKHOUSE_UID: {{ _clickhouse_system_user_output.uid | default('0') }}
+      CLICKHOUSE_GID: {{ _clickhouse_system_group_output.gid | default('0') }}
+    volumes:
+      - "{{ clickhouse_dir_data }}:/var/lib/clickhouse:rw"
+      - "{{ clickhouse_dir_config }}/config.xml:/etc/clickhouse-server/config.xml:ro"
+      - "{{ clickhouse_dir_config }}/users.xml:/etc/clickhouse-server/users.xml:ro"
+      - "{{ clickhouse_dir_log }}:/var/log/clickhouse-server:rw"
+      - "{{ clickhouse_dir_temp }}:/var/lib/clickhouse/tmp:rw"
+      - "{{ clickhouse_dir_user_files }}:/var/lib/clickhouse/user_files:rw"
+      - "{{ clickhouse_dir_format_schemas }}:/var/lib/clickhouse/format_schemas:rw"
+      {% if clickhouse_enable_secure_protocols %}
+      - "{{ clickhouse_dir_ssl }}/server.key:/etc/clickhouse-server/server.key:ro"
+      - "{{ clickhouse_dir_ssl }}/server.crt:/etc/clickhouse-server/server.crt:ro"
+      {% endif %}
+    {% if clickhouse_docker_cpus is defined %}
+    cpus: {{ clickhouse_docker_cpus | int }}
+    {% endif %}
+    {% if clickhouse_docker_mem_limit is defined %}
+    mem_limit: {{ clickhouse_docker_mem_limit }}
+    {% endif%}
+    cap_add:
+    {% for cap in clickhouse_docker_cap_add %}
+      - {{ cap }}
+    {% endfor %}
+    ports:
+    {% for ports in clickhouse_docker_published_ports %}
+      - "{{ ports.host }}:{{ ports.container }}"
+    {% endfor %}

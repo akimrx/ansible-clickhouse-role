@@ -1,0 +1,112 @@
+---
+- name: molecule - prepare
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: molecule - generate private key
+      delegate_to: localhost
+      community.crypto.openssl_privatekey:
+        path: /tmp/server.key
+        mode: "0644"
+        type: RSA
+        size: 2048
+
+    - name: molecule - generate openssl csr
+      delegate_to: localhost
+      community.crypto.openssl_csr:
+        path: /tmp/server.csr
+        privatekey_path: /tmp/server.key
+        common_name: localhost
+        country_name: RU
+        organization_name: akimrx
+
+    - name: molecule - generate openssl x509 certificate
+      delegate_to: localhost
+      community.crypto.x509_certificate:
+        path: /tmp/server.crt
+        privatekey_path: /tmp/server.key
+        csr_path: /tmp/server.csr
+        provider: selfsigned
+
+    - name: molecule - install apt packages
+      become: true
+      apt:
+        name:
+          - curl
+          - cron
+          - python3
+          - python3-distutils
+        state: present
+        update_cache: true
+
+    - name: molecule - install pip for Ubuntu 18
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version == "18"
+      become: true
+      shell:
+        cmd: curl -L https://bootstrap.pypa.io/pip/3.6/get-pip.py | python3
+
+    - name: molecule - install pip for new Ubuntu
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_major_version != "18"
+      become: true
+      shell:
+        cmd: curl -L https://bootstrap.pypa.io/get-pip.py | python3
+
+    - name: molecule - install python requirements
+      become: true
+      shell:
+        cmd: pip3 install setuptools
+
+    - name: molecule - remove previous docker packages before test
+      apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: molecule - install system packages for docker
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: molecule - add source repository for docker
+      shell:
+        cmd: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      changed_when: false
+
+    - name: molecule - install docker services
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - docker-compose-plugin
+          - containerd.io
+        state: present
+        update_cache: true
+
+    - name: molecule - run docker before test
+      systemd:
+        name: docker
+        state: started
+        daemon_reload: true
+
+    - name: molecule - install docker requirements for ansible
+      pip:
+        name:
+          - docker
+          - docker-compose
+
+    - name: molecule - ensure docker services started
+      systemd:
+        name: docker
+        state: restarted
+        daemon_reload: true
+        enabled: true

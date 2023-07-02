@@ -1,0 +1,121 @@
+#jinja2: trim_blocks:True, lstrip_blocks:True
+<?xml version="1.0"?>
+<!-- {{ ansible_managed }} -->
+<yandex>
+    <profiles>
+    <!-- Default profiles -->
+    {% for profile in clickhouse_user_profiles_default.keys() %}
+        <{{ profile }}>
+            {% for key, value in clickhouse_user_profiles_default[profile].items() %}
+            <{{ key }}>{{ value }}</{{ key }}>
+            {% endfor %}
+        </{{ profile }}>
+    {% endfor %}
+
+    {% if clickhouse_user_profiles_custom is defined %}
+    <!-- Custom profiles -->
+    {% for profile in clickhouse_user_profiles_custom.keys() %}
+        <{{ profile }}>
+            {% for key, value in clickhouse_user_profiles_custom[profile].items() %}
+            <{{ key }}>{{ value }}</{{ key }}>
+            {% endfor %}
+        </{{ profile }}>
+    {% endfor %}
+    {% endif %}
+    </profiles>
+
+
+    <users>
+        <!-- Default users -->
+        {% for user in clickhouse_users_default %}
+        <{{ user.username }}>
+            {% if user.password is defined and user.password != '' %}
+            <password_sha256_hex>{{ user.password | hash('sha256') }}</password_sha256_hex>
+            {% else %}
+            <password></password>
+            {% endif %}
+            {% if user.access_management is defined and user.access_management %}
+            <access_management>1</access_management>
+            {% endif %}
+            <networks>
+            {% for key, values in user.networks.items() %}
+               {% for value in values %}
+                <{{ key }}>{{ value }}</{{ key }}>
+               {% endfor %}
+            {% endfor %}
+            </networks>
+            <profile>{{ user.profile }}</profile>
+            <quota>{{ user.quota }}</quota>
+            {% if user.allow_databases | default([]) | length > 0 %}
+            <allow_databases>
+                {% for database in user.allow_databases %}
+                <database>{{ database }}</database>
+                {% endfor %}
+            </allow_databases>
+            {% endif %}
+        </{{ user.username }}>
+        {% endfor %}
+
+        {% if clickhouse_users_custom is defined %}
+        <!-- Custom users -->
+        {% for user in clickhouse_users_custom %}
+        <{{ user.username }}>
+            {% if user.password is defined and user.password != '' %}
+            <password_sha256_hex>{{ user.password | hash('sha256') }}</password_sha256_hex>
+            {% else %}
+            <password></password>
+            {% endif %}
+            {% if user.access_management is defined and user.access_management %}
+            <access_management>1</access_management>
+            {% endif %}
+            <networks>
+            {% for key, values in user.networks.items() %}
+               {% for value in values %}
+                <{{ key }}>{{ value }}</{{ key }}>
+               {% endfor %}
+            {% endfor %}
+            </networks>
+            <profile>{{ user.profile }}</profile>
+            <quota>{{ user.quota }}</quota>
+            {% if user.allow_databases | default([]) | length > 0 %}
+            <allow_databases>
+                {% for database in user.allow_databases %}
+                <database>{{ database }}</database>
+                {% endfor %}
+            </allow_databases>
+            {% endif %}
+        </{{ user.username }}>
+        {% endfor %}
+        {% endif %}
+    </users>
+
+    <quotas>
+        <!-- Default quotas -->
+        {% for quota in clickhouse_user_quotas_default.keys() %}
+        <{{ quota }}>
+        {% for interval in clickhouse_user_quotas_default[quota]["intervals"] %}
+            <interval>
+            {% for key, value in interval.items() %}
+                <{{ key }}>{{ value }}</{{ key }}>
+            {% endfor %}
+            </interval>
+        {% endfor %}
+        </{{ quota }}>
+        {% endfor %}
+
+        {% if clickhouse_user_quotas_custom is defined %}
+        <!-- Custom quotas -->
+        {% for quota in clickhouse_user_quotas_custom.keys() %}
+        <{{ quota }}>
+        {% for interval in clickhouse_user_quotas_custom[quota]["intervals"] %}
+            <interval>
+            {% for key, value in interval.items() %}
+                <{{ key }}>{{ value }}</{{ key }}>
+            {% endfor %}
+            </interval>
+        {% endfor %}
+        </{{ quota }}>
+        {% endfor %}
+        {% endif %}
+    </quotas>
+</yandex>

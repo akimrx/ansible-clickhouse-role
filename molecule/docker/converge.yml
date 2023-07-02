@@ -1,0 +1,53 @@
+---
+- name: molecule - converge with docker service manager
+  hosts: all
+  any_errors_fatal: true
+  roles:
+    - clickhouse
+  vars:
+    clickhouse_service_manager: docker
+    clickhouse_enable_secure_protocols: true
+    clickhouse_ssl_certificate: "{{ lookup('file', '/tmp/server.crt') }}"
+    clickhouse_ssl_private_key: "{{ lookup('file', '/tmp/server.key') }}"
+    clickhouse_docker_published_ports:
+      - host: "{{ clickhouse_listen_port_tcp }}"
+        container: "{{ clickhouse_listen_port_tcp }}"
+      - host: "{{ clickhouse_listen_port_tcp_secure }}"
+        container: "{{ clickhouse_listen_port_tcp_secure }}"
+      - host: "{{ clickhouse_listen_port_http }}"
+        container: "{{ clickhouse_listen_port_http }}"
+      - host: "{{ clickhouse_listen_port_https }}"
+        container: "{{ clickhouse_listen_port_https }}"
+    clickhouse_users_custom:
+      - username: test
+        password: test
+        profile: default
+        quota: default
+        allow_databases:
+          - test
+        networks:
+          ip:
+            - ::/0
+    clickhouse_zookeeper_enabled: true
+    clickhouse_zookeeper_hosts:
+      - fqdn: 127.0.0.1
+        port: 2181
+    clickhouse_merge_tree_settings:
+      max_concurrent_queries: 50
+    clickhouse_sharding_clusters:
+      - name: molecule
+        shards:
+          - weight: 1
+            internal_replication: false
+            replicas:
+              - priority: 1
+                secure: 0
+                host: 127.0.0.1
+                port: 9000
+                user: default
+                password: default
+              - priority: 2
+                host: 127.0.0.2
+                port: 9000
+                user: default
+                password: default

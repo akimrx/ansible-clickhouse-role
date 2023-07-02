@@ -1,0 +1,8 @@
+---
+- name: clickhouse - copy clickhouse-client config
+  template:
+    src: templates/config/client.xml.j2
+    dest: "{{ ansible_env.HOME }}/clickhouse-client.xml"
+    mode: "0600"
+    owner: "{{ clickhouse_client_os_user }}"
+    group: "{{ clickhouse_client_os_group }}"

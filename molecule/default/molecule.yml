@@ -1,0 +1,44 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: hetznercloud
+platforms:
+  - name: molecule-clickhouse-default-ubuntu-18
+    server_type: cx21
+    image: ubuntu-18.04
+  - name: molecule-clickhouse-default-ubuntu-20
+    server_type: cx21
+    image: ubuntu-20.04
+  - name: molecule-clickhouse-default-ubuntu-22
+    server_type: cx21
+    image: ubuntu-22.04
+scenario:
+  test_sequence:
+    - lint
+    - syntax
+    - destroy
+    - dependency
+    - create
+    - prepare
+    - converge
+    - idempotence
+    # - side_effect
+    - verify
+    - destroy
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml
+verifier:
+  name: testinfra
+  directory: ../../tests
+  options:
+    verbose: true
+  env:
+    PYTEST_ADDOPTS: --color=yes
+lint: |
+  set -e
+  yamllint .
+  ansible-lint

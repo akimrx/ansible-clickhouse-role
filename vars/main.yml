@@ -1,0 +1,10 @@
+---
+clickhouse_specific_dirs_mode_map:
+  systemd: "0750"
+  docker: "0755"
+clickhouse_specific_dirs_mode: "{{ clickhouse_specific_dirs_mode_map[clickhouse_service_manager] | default('0755') }}"
+
+clickhouse_config_files_mode_map:
+  systemd: "0640"
+  docker: "0644"
+clickhouse_config_files_mode: "{{ clickhouse_config_files_mode_map[clickhouse_service_manager] | default('0644') }}"
