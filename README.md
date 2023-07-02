@@ -38,7 +38,7 @@ ansible-galaxy role install https://github.com/akimrx/ansible-clickhouse-role.gi
 ```yaml
 ---
 roles:
-  - name: node_exporter
+  - name: clickhouse
     src: https://github.com/akimrx/ansible-clickhouse-role.git
     type: git
     version: master
